@@ -1,0 +1,53 @@
+# Trigger the pipeline on changes to the main branch
+trigger:
+  branches:
+    include:
+      - main
+
+# Use a Microsoft-hosted Windows VM for the pipeline
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+  - stage: Setup_GardMeMVP13
+    jobs:
+      - job: InstallAndConfigure
+        steps:
+
+          # 1. Install .NET SDK
+          - task: UseDotNet@2
+            inputs:
+              packageType: 'sdk'
+              version: '6.x'  # Replace with the required version
+
+          # 2. Install Chocolatey and common tools
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Install Chocolatey, Git, Python, and Node.js
+                Set-ExecutionPolicy Bypass -Scope Process -Force;
+                [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+                iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+                
+                # Install essential tools
+                choco install -y git python nodejs
+
+          # 3. Clone the GardMeMVP13 repository
+          - checkout: self
+
+          # 4. Run the custom PowerShell setup script
+          - task: PowerShell@2
+            inputs:
+              targetType: 'filePath'
+              # Update this path to match the location of your main PowerShell script in the repository
+              filePath: 'main_setup_script.ps1'
+
+          # 5. Test Network Connectivity
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Test network connectivity to Google DNS as a sample test
+                Test-NetConnection -ComputerName "8.8.8.8" -Port 80 | Out-File network_test_results.txt
+                Write-Output "Network test completed successfully."
