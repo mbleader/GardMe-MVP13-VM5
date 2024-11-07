@@ -4,30 +4,34 @@ trigger:
     include:
       - main
 
-# Use a Microsoft-hosted Windows VM for the pipeline
+# Specify the custom self-hosted agent pool to run this pipeline
 pool:
-  vmImage: 'windows-latest'
+  name: GardMeMVP13VM5-Pool  # Replace with the exact name of your agent pool in Azure DevOps
 
 stages:
   - stage: Setup_GardMeMVP13
     jobs:
       - job: InstallAndConfigure
+        displayName: "Install and Configure GardMeMVP13 on Self-Hosted Agent"
         steps:
 
           # 1. Install .NET SDK
           - task: UseDotNet@2
+            displayName: "Install .NET SDK"
             inputs:
               packageType: 'sdk'
-              version: '6.x'  # Replace with the required version
+              version: '6.0.x'  # Specify the required .NET version if different, e.g., '6.0.100'
 
-          # 2. Install Chocolatey and common tools
+          # 2. Install Chocolatey and essential tools
           - task: PowerShell@2
+            displayName: "Install Chocolatey and Essential Tools"
             inputs:
               targetType: 'inline'
               script: |
-                # Install Chocolatey, Git, Python, and Node.js
+                # Set up Chocolatey and install Git, Python, and Node.js
                 Set-ExecutionPolicy Bypass -Scope Process -Force;
-                [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+                [System.Net.ServicePointManager]::SecurityProtocol = `
+                [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
                 iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
                 
                 # Install essential tools
@@ -35,16 +39,19 @@ stages:
 
           # 3. Clone the GardMeMVP13 repository
           - checkout: self
+            displayName: "Clone GardMeMVP13 Repository"
 
           # 4. Run the custom PowerShell setup script
           - task: PowerShell@2
+            displayName: "Run GardMeMVP13 Setup Script"
             inputs:
               targetType: 'filePath'
-              # Update this path to match the location of your main PowerShell script in the repository
+              # Update this path to the exact location of your PowerShell script in the repository
               filePath: 'main_setup_script.ps1'
 
           # 5. Test Network Connectivity
           - task: PowerShell@2
+            displayName: "Test Network Connectivity"
             inputs:
               targetType: 'inline'
               script: |
